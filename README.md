@@ -1,5 +1,5 @@
 
-# Proyecto Final - Calculadora de Derivadas e Integrales / JAVA
+# Proyecto Final - Calculadora de Derivadas e Integrales
 
 El proyecto consiste en realizar una calculadora de Derivadas e Integrales de forma gráfica utilizando los conceptos vistos durante el curso, como lo son, POO, Control de Versiones, Documentación, etc.
 
