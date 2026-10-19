@@ -1,8 +1,7 @@
 
-# Proyecto #2 - Juego de Carreras / JAVA
-#ESTE PROYECTO ES POR SI ACASO
+# Proyecto Final - Calculadora de Derivadas e Integrales / JAVA
 
-El proyecto consiste en realizar un juego de carreras con interfaz gráfica para 2 jugadores, aplicando Programación Orientada a Objetos y manejo de excepciones, el usuario puede elegir su vehículo y compiten hasta que uno cruce la línea de meta, también es posible jugar contra la computadora.
+El proyecto consiste en realizar una calculadora de Derivadas e Integrales de forma gráfica utilizando los conceptos vistos durante el curso, como lo son, POO, Control de Versiones, Documentación, etc.
 
 Proyecto del cuarto semestre de Ingeniería en Sistemas
 
@@ -14,6 +13,7 @@ Programación II
 Proyecto realizado por:
 - [@Julio-szl](https://github.com/Julio-szl)
 - [@alexvrro](https://github.com/alexvrro)
+- [@Esdras](https://github.com/esdrassamueltuyyax-netizen)
 
 ## Badges
 
