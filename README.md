@@ -1,18 +1,20 @@
-## Getting Started
 
-Welcome to the VS Code Java world. Here is a guideline to help you get started to write Java code in Visual Studio Code.
+# Proyecto #2 - Juego de Carreras / JAVA
+#ESTE PROYECTO ES POR SI ACASO
 
-## Folder Structure
+El proyecto consiste en realizar un juego de carreras con interfaz gráfica para 2 jugadores, aplicando Programación Orientada a Objetos y manejo de excepciones, el usuario puede elegir su vehículo y compiten hasta que uno cruce la línea de meta, también es posible jugar contra la computadora.
 
-The workspace contains two folders by default, where:
+Proyecto del cuarto semestre de Ingeniería en Sistemas
 
-- `src`: the folder to maintain sources
-- `lib`: the folder to maintain dependencies
+Universidad Mariano Gálvez de Guatemala
 
-Meanwhile, the compiled output files will be generated in the `bin` folder by default.
+Programación II
 
-> If you want to customize the folder structure, open `.vscode/settings.json` and update the related settings there.
+## Authors
+Proyecto realizado por:
+- [@Julio-szl](https://github.com/Julio-szl)
+- [@alexvrro](https://github.com/alexvrro)
 
-## Dependency Management
+## Badges
 
-The `JAVA PROJECTS` view allows you to manage your dependencies. More details can be found [here](https://github.com/microsoft/vscode-java-dependency#manage-dependencies).
+[![Java](https://img.shields.io/badge/Java-%23ED8B00.svg?logo=openjdk&logoColor=white)](#)
