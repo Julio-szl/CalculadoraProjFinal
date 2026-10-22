@@ -1,7 +1,7 @@
 package logic;
 
-import excepciones.CalculadoraException;
-import excepciones.LimiteInvalidoException;
+import exceptions.CalculadoraException;
+import exceptions.LimiteInvalidoException;
 import modelo.Polinomio;
 
 import java.util.Locale;

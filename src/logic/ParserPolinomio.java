@@ -1,8 +1,8 @@
 package logic;
 
 import exceptions.ExpresionInvalidaException;
-import model.Polinomio;
-import model.Termino;
+import modelo.Polinomio;
+import modelo.Termino;
 
 public class ParserPolinomio {
 
