@@ -2,9 +2,8 @@ package logic;
 
 import exceptions.CalculadoraException;
 import exceptions.LimiteInvalidoException;
-import modelo.Polinomio;
-
 import java.util.Locale;
+import modelo.Polinomio;
 
 /**
  * Fachada de la calculadora: es lo ÚNICO que la interfaz (vista) debe llamar.
@@ -44,7 +43,7 @@ public class Calculadora {
         double limiteSuperior = parsearLimite(b, "superior");
 
         Polinomio polinomio = parser.parsear(funcion, variable);
-        double resultado = polinomio.integrarDefinida(limiteInferior, limiteSuperior);
+        double resultado = polinomio.integralDefinida(limiteInferior, limiteSuperior);
         return "Resultado = " + formatear(resultado);
     }
 

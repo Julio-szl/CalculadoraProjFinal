@@ -18,7 +18,7 @@ public class ParserPolinomio {
 
         Polinomio polinomio = new Polinomio(variable);
         for (String parte : partes) {
-            polinomio.agregarTermino(parsearTermino(parte, variable));
+            polinomio.agregar(parsearTermino(parte, variable));
         }
         return polinomio;
     }
