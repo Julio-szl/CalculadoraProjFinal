@@ -1,8 +1,8 @@
 package logic;
 
 import java.util.List;
-import model.Polinomio;
-import model.Termino;
+import modelo.Polinomio;
+import modelo.Termino;
 
 /**
  * Arma el texto de "Pasos del procedimiento" para cada operación.
@@ -38,7 +38,7 @@ class GeneradorPasos {
         return sb.toString();
     }
 
-    String integrarIndefinida(Polinomio polinomio, String resultado) {
+    String integralIndefinida(Polinomio polinomio, String resultado) {
         char v = polinomio.getVariable();
         StringBuilder sb = new StringBuilder();
 
@@ -58,7 +58,7 @@ class GeneradorPasos {
         return sb.toString();
     }
 
-    String integrarDefinida(Polinomio polinomio, double a, double b, String resultado) {
+    String integralDefinida(Polinomio polinomio, double a, double b, String resultado) {
         char v = polinomio.getVariable();
         Polinomio primitiva = polinomio.integrar();
         String textoA = Termino.formatear(a);
