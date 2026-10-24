@@ -1,25 +1,16 @@
 package vista;
 
+import java.awt.Insets;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
-import java.awt.Insets;
 
-/**
- * Punto de entrada de la aplicación: solo abre la VentanaPrincipal.
- */
 public class Main {
 
     public static void main(String[] args) {
         aplicarAspecto();
-
-        // Swing debe crearse y manejarse desde su propio hilo (Event Dispatch Thread).
         SwingUtilities.invokeLater(() -> new VentanaPrincipal().setVisible(true));
     }
 
-    /**
-     * Usa FlatLaf oscuro (lib/flatlaf-*.jar) para un aspecto tipo terminal. Se carga por
-     * nombre: si la librería no está, la app no falla y usa el aspecto del sistema operativo.
-     */
     private static void aplicarAspecto() {
         try {
             UIManager.setLookAndFeel("com.formdev.flatlaf.FlatDarkLaf");
@@ -39,7 +30,6 @@ public class Main {
             try {
                 UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
             } catch (Exception e) {
-                // Si también falla, Swing usa su aspecto por defecto; no es un error grave.
             }
         }
     }
