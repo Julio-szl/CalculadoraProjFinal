@@ -430,3 +430,11 @@ FodyWeavers.xsd
 
 # Archivos compilados de Java
 bin/
+
+# Java
+*.class
+build/
+nbproject/private/
+
+# Configuración local con credenciales (no subir nunca)
+config.properties
