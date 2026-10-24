@@ -32,8 +32,8 @@ public class VentanaManual extends JDialog {
     // ---------------- Contenido de cada sección ----------------
 
     private static final String INICIO =
-            "<h2>Bienvenido</h2>"
-            + "<p>Esta calculadora resuelve <b>derivadas</b> e <b>integrales</b> de polinomios "
+            "<h2>Bienvenido a Cuentas Claras</h2>"
+            + "<p>Cuentas Claras resuelve <b>derivadas</b> e <b>integrales</b> de polinomios "
             + "y te muestra el procedimiento completo para que entiendas cómo se llegó al resultado. "
             + "Funciona como una terminal: cada cálculo aparece como un <b>bloque</b> en la lista.</p>"
 

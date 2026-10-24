@@ -1,5 +1,7 @@
 package vista;
 
+import exceptions.CalculadoraException;
+
 import javax.swing.JComponent;
 import java.awt.BasicStroke;
 import java.awt.Color;
@@ -19,11 +21,21 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * Caja con la gráfica de una o varias funciones (f, f' o F) ya evaluadas.
- * No calcula nada: recibe los puntos x y los valores y de cada curva.
+ * Caja con la gráfica de una o varias funciones (f, f' o F).
+ * No calcula nada por sí misma: cada curva trae un Evaluador (que usa la Calculadora)
+ * y la gráfica le pide los valores con un punto por píxel de ancho, de nuevo cada vez
+ * que cambia de tamaño, para que la curva se vea suave.
  * Al pasar el mouse muestra los valores de cada curva en ese punto.
  */
 class PanelGrafica extends JComponent {
+
+    /** Calcula los valores y de una curva para los puntos x que se le pasan. */
+    interface Evaluador {
+        double[] evaluar(double[] puntos) throws CalculadoraException;
+    }
+
+    /** Puntos que se usan antes de conocer el ancho real del panel. */
+    private static final int PUNTOS_INICIALES = 401;
 
     private static final int MARGEN_IZQ = 56;
     private static final int MARGEN_DER = 16;
@@ -37,16 +49,17 @@ class PanelGrafica extends JComponent {
     private static class Serie {
         final String nombre;
         final Color color;
-        final double[] valores;
+        final Evaluador evaluador;
+        double[] valores;
 
-        Serie(String nombre, Color color, double[] valores) {
+        Serie(String nombre, Color color, Evaluador evaluador) {
             this.nombre = nombre;
             this.color = color;
-            this.valores = valores;
+            this.evaluador = evaluador;
         }
     }
 
-    private final double[] puntosX;
+    private double[] puntosX;
     private final List<Serie> series = new ArrayList<>();
     private Double areaDesde;
     private Double areaHasta;
@@ -57,10 +70,11 @@ class PanelGrafica extends JComponent {
     private double yMax;
     private int mouseX = -1;
 
-    PanelGrafica(double[] puntosX) {
-        this.puntosX = puntosX;
-        this.xMin = puntosX[0];
-        this.xMax = puntosX[puntosX.length - 1];
+    /** Gráfica para x entre desde y hasta. */
+    PanelGrafica(double desde, double hasta) {
+        this.xMin = desde;
+        this.xMax = hasta;
+        this.puntosX = puntos(desde, hasta, PUNTOS_INICIALES);
         setPreferredSize(new Dimension(400, 250));
         setFont(Estilo.fuente(Font.PLAIN, 11));
 
@@ -90,9 +104,40 @@ class PanelGrafica extends JComponent {
         return xs;
     }
 
-    void agregarSerie(String nombre, Color color, double[] valores) {
-        series.add(new Serie(nombre, color, valores));
+    /**
+     * Agrega una curva. Se evalúa enseguida: si la función no se puede evaluar,
+     * la excepción sale de aquí y quien arma la gráfica decide no mostrarla.
+     */
+    void agregarSerie(String nombre, Color color, Evaluador evaluador) throws CalculadoraException {
+        Serie serie = new Serie(nombre, color, evaluador);
+        serie.valores = evaluador.evaluar(puntosX);
+        series.add(serie);
         calcularRangoY();
+    }
+
+    /** Vuelve a calcular todas las curvas con la cantidad de puntos indicada. */
+    private void muestrear(int cantidad) {
+        puntosX = puntos(xMin, xMax, cantidad);
+        for (Serie serie : series) {
+            try {
+                serie.valores = serie.evaluador.evaluar(puntosX);
+            } catch (CalculadoraException | RuntimeException e) {
+                // Ya se evaluó bien al agregarla, así que esto no debería pasar;
+                // si pasa, la curva queda vacía en lugar de romper el dibujo.
+                serie.valores = new double[cantidad];
+                Arrays.fill(serie.valores, Double.NaN);
+            }
+        }
+        calcularRangoY();
+    }
+
+    /**
+     * Un punto por píxel real de pantalla: con el escalado de Windows (125 %, 150 %...)
+     * hay más píxeles físicos que lógicos, y se aprovechan todos.
+     */
+    private int puntosNecesarios(Graphics2D g2) {
+        double escala = g2.getTransform().getScaleX();
+        return Math.max(2, (int) Math.ceil(ancho() * escala) + 1);
     }
 
     /** Sombrea el área bajo la primera curva entre a y b (integral definida). */
@@ -194,6 +239,14 @@ class PanelGrafica extends JComponent {
         Graphics2D g2 = (Graphics2D) g.create();
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+        // Sin esto Java "ajusta" las líneas a la cuadrícula de píxeles y se ven escalones
+        // en los tramos casi horizontales (por ejemplo cerca de un mínimo).
+        g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
+        g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+
+        if (ancho() > 0 && puntosX.length != puntosNecesarios(g2)) {
+            muestrear(puntosNecesarios(g2));
+        }
 
         g2.setColor(FONDO);
         g2.fill(new RoundRectangle2D.Double(0, 0, getWidth() - 1, getHeight() - 1, 10, 10));

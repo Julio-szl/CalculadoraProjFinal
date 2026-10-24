@@ -23,12 +23,15 @@ import javax.swing.KeyStroke;
 import javax.swing.Scrollable;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
+import java.awt.GraphicsEnvironment;
 import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
@@ -123,7 +126,7 @@ public class VentanaPrincipal extends JFrame {
     }
 
     private void inicializarComponentes() {
-        setTitle("Calculadora de Derivadas e Integrales");
+        setTitle("Cuentas Claras");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         JButton btnBorrar = Estilo.botonSecundario("Borrar historial");
@@ -139,7 +142,7 @@ public class VentanaPrincipal extends JFrame {
 
         JPanel raiz = new JPanel(new BorderLayout());
         raiz.setBackground(Estilo.FONDO);
-        raiz.add(Estilo.barraSuperior("calculadora", "derivadas e integrales de polinomios", botonesSuperiores),
+        raiz.add(Estilo.barraSuperior("Cuentas Claras", "derivadas e integrales de polinomios", botonesSuperiores),
                 BorderLayout.NORTH);
         raiz.add(crearAreaBloques(), BorderLayout.CENTER);
         raiz.add(crearBarraEntrada(), BorderLayout.SOUTH);
@@ -149,10 +152,19 @@ public class VentanaPrincipal extends JFrame {
         actualizarLimites();
         agregarBloqueBienvenida();
 
-        setSize(900, 680);
         setMinimumSize(new Dimension(760, 520));
-        setLocationRelativeTo(null);
+        ajustarTamanoInicial();
         SwingUtilities.invokeLater(() -> txtFuncion.requestFocusInWindow());
+    }
+
+    /**
+     * La ventana abre con 890 px de ancho, centrada, y con todo el alto disponible
+     * de la pantalla (sin tapar la barra de tareas), en cualquier resolución.
+     */
+    private void ajustarTamanoInicial() {
+        Rectangle pantalla = GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds();
+        int ancho = Math.min(890, pantalla.width);
+        setBounds(pantalla.x + (pantalla.width - ancho) / 2, pantalla.y, ancho, pantalla.height);
     }
 
     // ---------------- Construcción de la interfaz ----------------
@@ -212,7 +224,31 @@ public class VentanaPrincipal extends JFrame {
 
         txtFuncion = Estilo.campoTerminal(30, 18);
         txtFuncion.putClientProperty("JTextField.placeholderText", "escribe una función, por ejemplo 3x^2 + 5x - 2");
-        txtFuncion.putClientProperty("JTextField.showClearButton", true);
+        // Botón redondo con una × para borrar la función; solo se ve cuando hay texto.
+        JButton btnBorrarFuncion = Estilo.botonCerrarCircular();
+        btnBorrarFuncion.setToolTipText("Borrar la función");
+        btnBorrarFuncion.setVisible(false);
+        btnBorrarFuncion.addActionListener(e -> {
+            txtFuncion.setText("");
+            txtFuncion.requestFocusInWindow();
+        });
+        txtFuncion.putClientProperty("JTextField.trailingComponent", btnBorrarFuncion);
+        txtFuncion.getDocument().addDocumentListener(new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+                btnBorrarFuncion.setVisible(!txtFuncion.getText().isEmpty());
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+                btnBorrarFuncion.setVisible(!txtFuncion.getText().isEmpty());
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+                // Solo cambia el formato del texto, no su contenido.
+            }
+        });
         txtFuncion.putClientProperty("FlatLaf.style",
                 "background: #161922; foreground: #E6E8EE; borderWidth: 0; focusWidth: 0;"
                         + " margin: 4,6,4,6; placeholderForeground: #5C6370");
@@ -286,7 +322,7 @@ public class VentanaPrincipal extends JFrame {
         JPanel textos = new JPanel();
         textos.setLayout(new BoxLayout(textos, BoxLayout.Y_AXIS));
         textos.setOpaque(false);
-        textos.add(Estilo.texto("Calculadora de Derivadas e Integrales", Estilo.ACENTO, Font.BOLD, 16));
+        textos.add(Estilo.texto("Cuentas Claras", Estilo.ACENTO, Font.BOLD, 16));
         textos.add(Box.createVerticalStrut(4));
         textos.add(Estilo.texto("Elige la operación, escribe un polinomio abajo y pulsa Enter.",
                 Estilo.TEXTO_SUAVE, Font.PLAIN, 13));
@@ -483,17 +519,18 @@ public class VentanaPrincipal extends JFrame {
             hasta = Math.max(a, b) + margen;
         }
 
-        double[] puntos = PanelGrafica.puntos(desde, hasta, 401);
-        PanelGrafica grafica = new PanelGrafica(puntos);
+        // Cada curva recibe cómo calcularse (siempre con la Calculadora); la gráfica
+        // pide los valores con un punto por píxel según su ancho.
+        PanelGrafica grafica = new PanelGrafica(desde, hasta);
         grafica.agregarSerie("f(" + c.variable + ")", Estilo.ACENTO,
-                calculadora.evaluar(c.funcion, c.variable, puntos));
+                puntos -> calculadora.evaluar(c.funcion, c.variable, puntos));
 
         if (c.operacion == Operacion.DERIVADA) {
             grafica.agregarSerie("f'(" + c.variable + ")", Estilo.EXITO,
-                    calculadora.evaluarDerivada(c.funcion, c.variable, puntos));
+                    puntos -> calculadora.evaluarDerivada(c.funcion, c.variable, puntos));
         } else if (c.operacion == Operacion.INDEFINIDA) {
             grafica.agregarSerie("F(" + c.variable + ") con C = 0", Estilo.MORADO,
-                    calculadora.evaluarPrimitiva(c.funcion, c.variable, puntos));
+                    puntos -> calculadora.evaluarPrimitiva(c.funcion, c.variable, puntos));
         } else {
             grafica.sombrearArea(a, b);
         }

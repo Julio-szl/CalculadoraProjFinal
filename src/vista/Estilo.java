@@ -7,9 +7,11 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.JToggleButton;
+import java.awt.BasicStroke;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Cursor;
+import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
@@ -111,6 +113,48 @@ final class Estilo {
                         + " selectedBackground: #173041; selectedForeground: #5AC8FA;"
                         + " borderColor: #2A2F3C; focusWidth: 0; margin: 3,12,3,12");
         boton.setFocusable(false);
+        boton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        return boton;
+    }
+
+    /**
+     * Botón redondo con una × blanca, con el mismo aspecto que los botones x / y de la
+     * variable. Se dibuja a mano para que el círculo se vea igual dentro de un campo de
+     * texto (FlatLaf les quita el borde a los botones que van dentro de un campo).
+     */
+    static JButton botonCerrarCircular() {
+        JButton boton = new JButton() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                int lado = Math.min(getWidth(), getHeight()) - 4;
+                int x = (getWidth() - lado) / 2;
+                int y = (getHeight() - lado) / 2;
+
+                g2.setColor(getModel().isPressed() ? BORDE
+                        : getModel().isRollover() ? new Color(0x2A2F3C) : SUPERFICIE_ALTA);
+                g2.fillOval(x, y, lado, lado);
+                g2.setColor(BORDE);
+                g2.drawOval(x, y, lado, lado);
+
+                // La × se dibuja con dos líneas para que quede centrada y nítida.
+                int brazo = lado / 4;
+                int cx = x + lado / 2;
+                int cy = y + lado / 2;
+                g2.setColor(Color.WHITE);
+                g2.setStroke(new BasicStroke(1.8f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+                g2.drawLine(cx - brazo, cy - brazo, cx + brazo, cy + brazo);
+                g2.drawLine(cx - brazo, cy + brazo, cx + brazo, cy - brazo);
+                g2.dispose();
+            }
+        };
+        boton.setContentAreaFilled(false);
+        boton.setBorderPainted(false);
+        boton.setFocusPainted(false);
+        boton.setRolloverEnabled(true);
+        boton.setFocusable(false);
+        boton.setPreferredSize(new Dimension(28, 28));
         boton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         return boton;
     }
