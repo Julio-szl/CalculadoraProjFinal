@@ -1,8 +1,20 @@
 package vista;
 
 import exceptions.CalculadoraException;
-import logic.Calculadora;
-
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.awt.GraphicsEnvironment;
+import java.awt.Rectangle;
+import java.awt.event.ActionEvent;
+import java.awt.event.KeyEvent;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
 import javax.swing.AbstractAction;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -25,32 +37,23 @@ import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.Dimension;
-import java.awt.FlowLayout;
-import java.awt.Font;
-import java.awt.GraphicsEnvironment;
-import java.awt.Rectangle;
-import java.awt.event.ActionEvent;
-import java.awt.event.KeyEvent;
-import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.List;
+import logic.Calculadora;
 
 /**
- * Ventana principal de la calculadora, con estilo de terminal (inspirado en Warp):
- * cada cálculo aparece como un "bloque" en la lista y la función se escribe abajo,
+ * Ventana principal de la calculadora, con estilo de terminal (inspirado en
+ * Warp):
+ * cada cálculo aparece como un "bloque" en la lista y la función se escribe
+ * abajo,
  * en la barra de entrada.
  * Solo se comunica con la fachada Calculadora: le pasa el texto que escribió
  * el usuario y muestra el String que devuelve (o el mensaje de error).
  */
 public class VentanaPrincipal extends JFrame {
 
-    /** Ejemplos que el usuario puede pulsar para probar rápido (se escriben con x). */
-    private static final String[] EJEMPLOS = {"3x^2 + 5x - 2", "x^3 - 4x + 1", "2x^-2 + 6"};
+    /**
+     * Ejemplos que el usuario puede pulsar para probar rápido (se escriben con x).
+     */
+    private static final String[] EJEMPLOS = { "3x^2 + 5x - 2", "x^3 - 4x + 1", "2x^-2 + 6" };
 
     private static final DateTimeFormatter FORMATO_HORA = DateTimeFormatter.ofPattern("HH:mm:ss");
 
@@ -89,7 +92,9 @@ public class VentanaPrincipal extends JFrame {
         JTextArea areaPasos;
         JButton btnGrafica;
         PanelGrafica grafica;
-        /** true si la gráfica se abrió sola (por ser el último resultado) y no a mano. */
+        /**
+         * true si la gráfica se abrió sola (por ser el último resultado) y no a mano.
+         */
         boolean graficaAutomatica;
 
         Calculo(Operacion operacion, String funcion, char variable, String limiteA, String limiteB) {
@@ -104,7 +109,9 @@ public class VentanaPrincipal extends JFrame {
     private final Calculadora calculadora;
     /** Cálculos resueltos con éxito, en el orden en que se hicieron. */
     private final List<Calculo> resueltos = new ArrayList<>();
-    /** Último cálculo cuya gráfica se abrió sola; se recoge cuando llega uno nuevo. */
+    /**
+     * Último cálculo cuya gráfica se abrió sola; se recoge cuando llega uno nuevo.
+     */
     private Calculo ultimoConGraficaAutomatica;
 
     private PanelBloques panelBloques;
@@ -127,6 +134,10 @@ public class VentanaPrincipal extends JFrame {
 
     private void inicializarComponentes() {
         setTitle("Cuentas Claras");
+        java.net.URL url = getClass().getResource("/resources/icono.png");
+        if (url != null) {
+            setIconImage(new javax.swing.ImageIcon(url).getImage());
+        }
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         JButton btnBorrar = Estilo.botonSecundario("Borrar historial");
@@ -184,7 +195,7 @@ public class VentanaPrincipal extends JFrame {
         tglIndefinida = Estilo.opcion("∫ indefinida");
         tglDefinida = Estilo.opcion("∫ definida  [a, b]");
         ButtonGroup grupoOperacion = new ButtonGroup();
-        for (JToggleButton boton : new JToggleButton[]{tglDerivar, tglIndefinida, tglDefinida}) {
+        for (JToggleButton boton : new JToggleButton[] { tglDerivar, tglIndefinida, tglDefinida }) {
             grupoOperacion.add(boton);
             boton.addActionListener(e -> actualizarLimites());
         }
@@ -283,7 +294,7 @@ public class VentanaPrincipal extends JFrame {
         barra.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createMatteBorder(1, 0, 0, 0, Estilo.BORDE),
                 BorderFactory.createEmptyBorder(10, 14, 10, 14)));
-        for (JComponent fila : new JComponent[]{filaOpciones, filaComando, atajos}) {
+        for (JComponent fila : new JComponent[] { filaOpciones, filaComando, atajos }) {
             fila.setAlignmentX(Component.LEFT_ALIGNMENT);
             barra.add(fila);
             barra.add(Box.createVerticalStrut(8));
@@ -430,7 +441,9 @@ public class VentanaPrincipal extends JFrame {
         SwingUtilities.invokeLater(() -> irABloque(bloque));
     }
 
-    /** JTextArea de solo lectura y transparente, que parte en líneas el texto largo. */
+    /**
+     * JTextArea de solo lectura y transparente, que parte en líneas el texto largo.
+     */
     private static JTextArea areaDeTexto(String texto) {
         JTextArea area = new JTextArea(texto.trim());
         area.setEditable(false);
@@ -464,7 +477,7 @@ public class VentanaPrincipal extends JFrame {
     private Calculo leerEntrada() {
         Operacion operacion = tglDerivar.isSelected() ? Operacion.DERIVADA
                 : tglIndefinida.isSelected() ? Operacion.INDEFINIDA
-                : Operacion.DEFINIDA;
+                        : Operacion.DEFINIDA;
         return new Calculo(operacion, txtFuncion.getText(), tglX.isSelected() ? 'x' : 'y',
                 txtLimiteA.getText(), txtLimiteB.getText());
     }
@@ -491,7 +504,10 @@ public class VentanaPrincipal extends JFrame {
         }
     }
 
-    /** La gráfica es un extra: si por algo no se puede dibujar, el resultado se muestra igual. */
+    /**
+     * La gráfica es un extra: si por algo no se puede dibujar, el resultado se
+     * muestra igual.
+     */
     private PanelGrafica graficaOpcional(Calculo calculo) {
         try {
             return crearGrafica(calculo);
@@ -547,13 +563,18 @@ public class VentanaPrincipal extends JFrame {
         }
     }
 
-    /** Los ejemplos están escritos con x; se adaptan si la variable elegida es y. */
+    /**
+     * Los ejemplos están escritos con x; se adaptan si la variable elegida es y.
+     */
     private void usarEjemplo(String ejemplo) {
         txtFuncion.setText(ejemplo.replace('x', tglX.isSelected() ? 'x' : 'y'));
         txtFuncion.requestFocusInWindow();
     }
 
-    /** Calcula lo que hay en la barra de entrada. Devuelve el cálculo si salió bien, o null. */
+    /**
+     * Calcula lo que hay en la barra de entrada. Devuelve el cálculo si salió bien,
+     * o null.
+     */
     private Calculo calcular() {
         Calculo calculo = leerEntrada();
         try {
@@ -658,7 +679,9 @@ public class VentanaPrincipal extends JFrame {
         return item;
     }
 
-    /** Como "clear" en una terminal: borra los bloques y deja todo como al inicio. */
+    /**
+     * Como "clear" en una terminal: borra los bloques y deja todo como al inicio.
+     */
     private void limpiar() {
         resueltos.clear();
         ultimoConGraficaAutomatica = null;
