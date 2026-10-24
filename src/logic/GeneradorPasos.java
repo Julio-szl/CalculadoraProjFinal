@@ -1,8 +1,8 @@
 package logic;
 
 import java.util.List;
-import modelo.Polinomio;
-import modelo.Termino;
+import model.Polinomio;
+import model.Termino;
 
 /**
  * Arma el texto de "Pasos del procedimiento" para cada operación.
