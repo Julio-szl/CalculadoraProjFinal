@@ -73,14 +73,14 @@ public class Calculadora {
     /** Texto de varias líneas que explica cómo se obtuvo la integral indefinida. */
     public String pasosIntegrarIndefinida(String funcion, char variable) throws CalculadoraException {
         String resultado = integrarIndefinida(funcion, variable);
-        return pasos.integrarIndefinida(parser.parsear(funcion, variable), resultado);
+        return pasos.integralIndefinida(parser.parsear(funcion, variable), resultado);
     }
 
     /** Texto de varias líneas que explica cómo se obtuvo la integral definida. */
     public String pasosIntegrarDefinida(String funcion, char variable, String a, String b)
             throws CalculadoraException {
         String resultado = integrarDefinida(funcion, variable, a, b);
-        return pasos.integrarDefinida(parser.parsear(funcion, variable),
+        return pasos.integralDefinida(parser.parsear(funcion, variable),
                 parsearLimite(a, "inferior"), parsearLimite(b, "superior"), resultado);
     }
 
