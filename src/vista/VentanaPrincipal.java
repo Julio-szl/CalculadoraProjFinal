@@ -12,7 +12,9 @@ import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JMenuItem;
 import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
@@ -32,6 +34,8 @@ import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Ventana principal de la calculadora, con estilo de terminal (inspirado en Warp):
@@ -47,10 +51,52 @@ public class VentanaPrincipal extends JFrame {
 
     private static final DateTimeFormatter FORMATO_HORA = DateTimeFormatter.ofPattern("HH:mm:ss");
 
+    private static final String TEXTO_VER_PASOS = "▸ ver pasos";
+    private static final String TEXTO_OCULTAR_PASOS = "▾ ocultar pasos";
+
+    private enum Operacion {
+        DERIVADA("derivada"),
+        INDEFINIDA("integral indefinida"),
+        DEFINIDA("integral definida");
+
+        final String nombre;
+
+        Operacion(String nombre) {
+            this.nombre = nombre;
+        }
+    }
+
+    /**
+     * Un cálculo con los datos con que se hizo. Se guardan para poder mostrar sus
+     * pasos después, aunque el usuario ya haya cambiado la operación o los campos.
+     */
+    private static class Calculo {
+        final Operacion operacion;
+        final String funcion;
+        final char variable;
+        final String limiteA;
+        final String limiteB;
+        final String hora = LocalTime.now().format(FORMATO_HORA);
+
+        // Solo para cálculos resueltos: el bloque y la parte de pasos que se despliega.
+        Estilo.Tarjeta bloque;
+        JButton btnPasos;
+        JTextArea areaPasos;
+
+        Calculo(Operacion operacion, String funcion, char variable, String limiteA, String limiteB) {
+            this.operacion = operacion;
+            this.funcion = funcion.trim();
+            this.variable = variable;
+            this.limiteA = limiteA.trim();
+            this.limiteB = limiteB.trim();
+        }
+    }
+
     private final Calculadora calculadora;
+    /** Cálculos resueltos con éxito, en el orden en que se hicieron. */
+    private final List<Calculo> resueltos = new ArrayList<>();
 
     private PanelBloques panelBloques;
-    private JScrollPane scrollBloques;
     private JTextField txtFuncion;
     private JToggleButton tglX;
     private JToggleButton tglDerivar;
@@ -59,6 +105,7 @@ public class VentanaPrincipal extends JFrame {
     private JPanel panelLimites;
     private JTextField txtLimiteA;
     private JTextField txtLimiteB;
+    private JButton btnPasos;
 
     private VentanaManual ventanaManual;
 
@@ -96,7 +143,7 @@ public class VentanaPrincipal extends JFrame {
 
     private JScrollPane crearAreaBloques() {
         panelBloques = new PanelBloques();
-        scrollBloques = new JScrollPane(panelBloques);
+        JScrollPane scrollBloques = new JScrollPane(panelBloques);
         scrollBloques.setBorder(BorderFactory.createEmptyBorder());
         scrollBloques.getViewport().setBackground(Estilo.FONDO);
         scrollBloques.getVerticalScrollBar().setUnitIncrement(16);
@@ -156,10 +203,11 @@ public class VentanaPrincipal extends JFrame {
         txtFuncion.setBorder(BorderFactory.createEmptyBorder(4, 6, 4, 6));
 
         JButton btnCalcular = Estilo.botonPrimario("Calcular ⏎");
-        JButton btnPasos = Estilo.botonSecundario("Pasos");
+        btnPasos = Estilo.botonSecundario("Pasos ▴");
         JButton btnLimpiar = Estilo.botonSecundario("Limpiar");
         btnCalcular.addActionListener(e -> calcular());
-        btnPasos.addActionListener(e -> verPasos());
+        btnPasos.setToolTipText("Elegir de qué resultado ver el procedimiento");
+        btnPasos.addActionListener(e -> abrirMenuPasos());
         btnLimpiar.addActionListener(e -> limpiar());
         // Presionar Enter en cualquier campo equivale a pulsar "Calcular".
         getRootPane().setDefaultButton(btnCalcular);
@@ -177,7 +225,7 @@ public class VentanaPrincipal extends JFrame {
 
         // Fila 3: atajos de teclado
         JLabel atajos = Estilo.texto(
-                "enter calcular   ·   ctrl+p pasos   ·   ctrl+l limpiar   ·   f1 manual",
+                "enter calcular   ·   ctrl+p elegir pasos   ·   ctrl+l limpiar   ·   f1 manual",
                 new Color(0x5C6370), Font.PLAIN, 12);
 
         JPanel barra = new JPanel();
@@ -202,7 +250,7 @@ public class VentanaPrincipal extends JFrame {
 
     private void registrarAtajos() {
         JComponent raiz = getRootPane();
-        atajo(raiz, KeyStroke.getKeyStroke(KeyEvent.VK_P, KeyEvent.CTRL_DOWN_MASK), "pasos", this::verPasos);
+        atajo(raiz, KeyStroke.getKeyStroke(KeyEvent.VK_P, KeyEvent.CTRL_DOWN_MASK), "pasos", this::abrirMenuPasos);
         atajo(raiz, KeyStroke.getKeyStroke(KeyEvent.VK_L, KeyEvent.CTRL_DOWN_MASK), "limpiar", this::limpiar);
         atajo(raiz, KeyStroke.getKeyStroke(KeyEvent.VK_F1, 0), "manual", this::abrirManual);
     }
@@ -245,10 +293,11 @@ public class VentanaPrincipal extends JFrame {
     }
 
     /**
-     * Agrega un bloque como los de Warp: cabecera (operación y hora), el "comando"
-     * con el prompt y debajo la salida (resultado, pasos o error).
+     * Bloque como los de Warp: cabecera (operación y hora), el "comando" con el
+     * prompt y debajo la salida. Si el cálculo salió bien, el bloque además tiene
+     * el botón "ver pasos" (que despliega el procedimiento) y la gráfica.
      */
-    private void agregarBloque(String funcion, String salida, boolean esError) {
+    private void agregarBloque(Calculo calculo, String salida, boolean esError) {
         Estilo.Tarjeta bloque = new Estilo.Tarjeta(new BorderLayout(0, 6));
         if (esError) {
             bloque.setColores(new Color(0x1A1214), Estilo.BORDE_ERROR);
@@ -256,15 +305,13 @@ public class VentanaPrincipal extends JFrame {
 
         JPanel cabecera = new JPanel(new BorderLayout());
         cabecera.setOpaque(false);
-        cabecera.add(Estilo.texto(descripcionOperacion(), Estilo.TEXTO_SUAVE, Font.PLAIN, 12),
-                BorderLayout.WEST);
-        cabecera.add(Estilo.texto(LocalTime.now().format(FORMATO_HORA), Estilo.TEXTO_SUAVE, Font.PLAIN, 12),
-                BorderLayout.EAST);
+        cabecera.add(Estilo.texto(descripcion(calculo), Estilo.TEXTO_SUAVE, Font.PLAIN, 12), BorderLayout.WEST);
+        cabecera.add(Estilo.texto(calculo.hora, Estilo.TEXTO_SUAVE, Font.PLAIN, 12), BorderLayout.EAST);
 
         JPanel comando = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
         comando.setOpaque(false);
         comando.add(Estilo.texto("❯", Estilo.ACENTO, Font.BOLD, 15));
-        comando.add(Estilo.texto(funcion.trim().isEmpty() ? "(vacío)" : funcion.trim(),
+        comando.add(Estilo.texto(calculo.funcion.isEmpty() ? "(vacío)" : calculo.funcion,
                 Estilo.TEXTO, Font.PLAIN, 15));
 
         JPanel arriba = new JPanel(new BorderLayout(0, 6));
@@ -273,48 +320,157 @@ public class VentanaPrincipal extends JFrame {
         arriba.add(comando, BorderLayout.CENTER);
         bloque.add(arriba, BorderLayout.NORTH);
 
-        // JTextArea para que la salida pueda tener varias líneas (los pasos) y partir las largas.
-        JTextArea areaSalida = new JTextArea(esError ? "× " + salida : salida.trim());
-        areaSalida.setEditable(false);
-        areaSalida.setOpaque(false);
-        areaSalida.setLineWrap(true);
-        areaSalida.setWrapStyleWord(true);
-        areaSalida.setBorder(BorderFactory.createEmptyBorder(2, 22, 0, 0));
-        areaSalida.setFont(Estilo.fuente(Font.PLAIN, 15));
-        areaSalida.setForeground(esError ? Estilo.ERROR : Estilo.TEXTO);
-        // Un resultado de una sola línea se resalta en verde y negrita.
-        if (!esError && !salida.trim().contains("\n")) {
-            areaSalida.setFont(Estilo.fuente(Font.BOLD, 17));
-            areaSalida.setForeground(Estilo.EXITO);
+        // Debajo del comando, todo en columna: salida, botón de pasos, pasos y gráfica.
+        JPanel cuerpo = new JPanel();
+        cuerpo.setLayout(new BoxLayout(cuerpo, BoxLayout.Y_AXIS));
+        cuerpo.setOpaque(false);
+        bloque.add(cuerpo, BorderLayout.CENTER);
+
+        JTextArea areaSalida = areaDeTexto(esError ? "× " + salida : salida);
+        areaSalida.setFont(Estilo.fuente(esError ? Font.PLAIN : Font.BOLD, esError ? 15 : 17));
+        areaSalida.setForeground(esError ? Estilo.ERROR : Estilo.EXITO);
+        agregarEnColumna(cuerpo, areaSalida);
+
+        if (!esError) {
+            calculo.bloque = bloque;
+            resueltos.add(calculo);
+
+            calculo.btnPasos = Estilo.chip(TEXTO_VER_PASOS);
+            calculo.btnPasos.setToolTipText("Mostrar cómo se llegó a este resultado");
+            calculo.btnPasos.addActionListener(e -> alternarPasos(calculo));
+            JPanel acciones = filaTransparente(FlowLayout.LEFT, 0);
+            acciones.setBorder(BorderFactory.createEmptyBorder(6, 20, 2, 0));
+            acciones.add(calculo.btnPasos);
+            agregarEnColumna(cuerpo, acciones);
+
+            calculo.areaPasos = areaDeTexto("");
+            calculo.areaPasos.setFont(Estilo.fuente(Font.PLAIN, 14));
+            calculo.areaPasos.setForeground(Estilo.TEXTO);
+            calculo.areaPasos.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createEmptyBorder(6, 22, 4, 0),
+                    BorderFactory.createMatteBorder(0, 2, 0, 0, Estilo.BORDE)));
+            calculo.areaPasos.setVisible(false);
+            agregarEnColumna(cuerpo, calculo.areaPasos);
+
+            PanelGrafica grafica = graficaOpcional(calculo);
+            if (grafica != null) {
+                grafica.setBorder(BorderFactory.createEmptyBorder(8, 0, 0, 0));
+                agregarEnColumna(cuerpo, grafica);
+            }
         }
-        bloque.add(areaSalida, BorderLayout.CENTER);
 
         panelBloques.agregar(bloque);
         // Igual que en una terminal: se baja hasta el último bloque.
-        SwingUtilities.invokeLater(() -> {
-            Rectangle zona = bloque.getBounds();
-            panelBloques.scrollRectToVisible(new Rectangle(0, zona.y, 1, zona.height));
-        });
+        SwingUtilities.invokeLater(() -> irABloque(bloque));
     }
 
-    private String descripcionOperacion() {
-        String operacion;
-        if (tglDerivar.isSelected()) {
-            operacion = "derivada";
-        } else if (tglIndefinida.isSelected()) {
-            operacion = "integral indefinida";
-        } else {
-            operacion = "integral definida  a = " + txtLimiteA.getText().trim()
-                    + ", b = " + txtLimiteB.getText().trim();
+    /** JTextArea de solo lectura y transparente, que parte en líneas el texto largo. */
+    private static JTextArea areaDeTexto(String texto) {
+        JTextArea area = new JTextArea(texto.trim());
+        area.setEditable(false);
+        area.setOpaque(false);
+        area.setLineWrap(true);
+        area.setWrapStyleWord(true);
+        area.setBorder(BorderFactory.createEmptyBorder(2, 22, 0, 0));
+        return area;
+    }
+
+    private static void agregarEnColumna(JPanel columna, JComponent componente) {
+        componente.setAlignmentX(Component.LEFT_ALIGNMENT);
+        columna.add(componente);
+    }
+
+    private void irABloque(JComponent bloque) {
+        Rectangle zona = bloque.getBounds();
+        panelBloques.scrollRectToVisible(new Rectangle(0, zona.y, 1, zona.height));
+    }
+
+    private static String descripcion(Calculo calculo) {
+        String texto = calculo.operacion.nombre;
+        if (calculo.operacion == Operacion.DEFINIDA) {
+            texto += "  a = " + calculo.limiteA + ", b = " + calculo.limiteB;
         }
-        return operacion + "  ·  var " + variableSeleccionada();
+        return texto + "  ·  var " + calculo.variable;
+    }
+
+    // ---------------- Cálculos (todo pasa por la Calculadora) ----------------
+
+    private Calculo leerEntrada() {
+        Operacion operacion = tglDerivar.isSelected() ? Operacion.DERIVADA
+                : tglIndefinida.isSelected() ? Operacion.INDEFINIDA
+                : Operacion.DEFINIDA;
+        return new Calculo(operacion, txtFuncion.getText(), tglX.isSelected() ? 'x' : 'y',
+                txtLimiteA.getText(), txtLimiteB.getText());
+    }
+
+    private String resolver(Calculo c) throws CalculadoraException {
+        switch (c.operacion) {
+            case DERIVADA:
+                return calculadora.derivar(c.funcion, c.variable);
+            case INDEFINIDA:
+                return calculadora.integrarIndefinida(c.funcion, c.variable);
+            default:
+                return calculadora.integrarDefinida(c.funcion, c.variable, c.limiteA, c.limiteB);
+        }
+    }
+
+    private String pasos(Calculo c) throws CalculadoraException {
+        switch (c.operacion) {
+            case DERIVADA:
+                return calculadora.pasosDerivar(c.funcion, c.variable);
+            case INDEFINIDA:
+                return calculadora.pasosIntegrarIndefinida(c.funcion, c.variable);
+            default:
+                return calculadora.pasosIntegrarDefinida(c.funcion, c.variable, c.limiteA, c.limiteB);
+        }
+    }
+
+    /** La gráfica es un extra: si por algo no se puede dibujar, el resultado se muestra igual. */
+    private PanelGrafica graficaOpcional(Calculo calculo) {
+        try {
+            return crearGrafica(calculo);
+        } catch (CalculadoraException | RuntimeException e) {
+            return null;
+        }
+    }
+
+    /**
+     * Gráfica según la operación: f y f' (derivada), f y F con C = 0 (indefinida),
+     * o f con el área entre a y b sombreada (definida). Se llama solo después de
+     * un cálculo exitoso, así que la función y los límites ya son válidos.
+     */
+    private PanelGrafica crearGrafica(Calculo c) throws CalculadoraException {
+        double desde = -5;
+        double hasta = 5;
+        double a = 0;
+        double b = 0;
+        if (c.operacion == Operacion.DEFINIDA) {
+            a = calculadora.parsearLimite(c.limiteA, "inferior");
+            b = calculadora.parsearLimite(c.limiteB, "superior");
+            // Se muestra el intervalo [a, b] con un poco de espacio a cada lado.
+            double margen = Math.max(1, Math.abs(b - a) * 0.3);
+            desde = Math.min(a, b) - margen;
+            hasta = Math.max(a, b) + margen;
+        }
+
+        double[] puntos = PanelGrafica.puntos(desde, hasta, 401);
+        PanelGrafica grafica = new PanelGrafica(puntos);
+        grafica.agregarSerie("f(" + c.variable + ")", Estilo.ACENTO,
+                calculadora.evaluar(c.funcion, c.variable, puntos));
+
+        if (c.operacion == Operacion.DERIVADA) {
+            grafica.agregarSerie("f'(" + c.variable + ")", Estilo.EXITO,
+                    calculadora.evaluarDerivada(c.funcion, c.variable, puntos));
+        } else if (c.operacion == Operacion.INDEFINIDA) {
+            grafica.agregarSerie("F(" + c.variable + ") con C = 0", Estilo.MORADO,
+                    calculadora.evaluarPrimitiva(c.funcion, c.variable, puntos));
+        } else {
+            grafica.sombrearArea(a, b);
+        }
+        return grafica;
     }
 
     // ---------------- Acciones ----------------
-
-    private char variableSeleccionada() {
-        return tglX.isSelected() ? 'x' : 'y';
-    }
 
     /** Los límites solo se muestran para la integral definida. */
     private void actualizarLimites() {
@@ -326,58 +482,105 @@ public class VentanaPrincipal extends JFrame {
 
     /** Los ejemplos están escritos con x; se adaptan si la variable elegida es y. */
     private void usarEjemplo(String ejemplo) {
-        txtFuncion.setText(ejemplo.replace('x', variableSeleccionada()));
+        txtFuncion.setText(ejemplo.replace('x', tglX.isSelected() ? 'x' : 'y'));
         txtFuncion.requestFocusInWindow();
     }
 
-    private void calcular() {
-        String funcion = txtFuncion.getText();
-        char variable = variableSeleccionada();
-
+    /** Calcula lo que hay en la barra de entrada. Devuelve el cálculo si salió bien, o null. */
+    private Calculo calcular() {
+        Calculo calculo = leerEntrada();
         try {
-            String resultado;
-            if (tglDerivar.isSelected()) {
-                resultado = calculadora.derivar(funcion, variable);
-            } else if (tglIndefinida.isSelected()) {
-                resultado = calculadora.integrarIndefinida(funcion, variable);
-            } else {
-                resultado = calculadora.integrarDefinida(
-                        funcion, variable, txtLimiteA.getText(), txtLimiteB.getText());
-            }
-            agregarBloque(funcion, resultado, false);
+            agregarBloque(calculo, resolver(calculo), false);
+            return calculo;
         } catch (CalculadoraException e) {
-            agregarBloque(funcion, e.getMessage(), true);
+            agregarBloque(calculo, e.getMessage(), true);
         } catch (RuntimeException e) {
             // Red de seguridad: ningún error inesperado debe cerrar la ventana.
-            agregarBloque(funcion, "No se pudo realizar la operación: " + e.getMessage(), true);
+            agregarBloque(calculo, "No se pudo realizar la operación: " + e.getMessage(), true);
         }
+        return null;
     }
 
-    /** Agrega un bloque con el procedimiento completo de la operación elegida. */
-    private void verPasos() {
-        String funcion = txtFuncion.getText();
-        char variable = variableSeleccionada();
-
-        try {
-            String pasos;
-            if (tglDerivar.isSelected()) {
-                pasos = calculadora.pasosDerivar(funcion, variable);
-            } else if (tglIndefinida.isSelected()) {
-                pasos = calculadora.pasosIntegrarIndefinida(funcion, variable);
-            } else {
-                pasos = calculadora.pasosIntegrarDefinida(
-                        funcion, variable, txtLimiteA.getText(), txtLimiteB.getText());
-            }
-            agregarBloque(funcion, pasos, false);
-        } catch (CalculadoraException e) {
-            agregarBloque(funcion, e.getMessage(), true);
-        } catch (RuntimeException e) {
-            agregarBloque(funcion, "No se pudo realizar la operación: " + e.getMessage(), true);
+    /** Muestra u oculta los pasos dentro del bloque de ese cálculo. */
+    private void alternarPasos(Calculo calculo) {
+        if (calculo.areaPasos.isVisible()) {
+            calculo.areaPasos.setVisible(false);
+            calculo.btnPasos.setText(TEXTO_VER_PASOS);
+        } else {
+            mostrarPasos(calculo);
         }
+        calculo.bloque.revalidate();
+        calculo.bloque.repaint();
+    }
+
+    private void mostrarPasos(Calculo calculo) {
+        // Los pasos se piden la primera vez que se abren y después solo se muestran.
+        if (calculo.areaPasos.getText().isEmpty()) {
+            String texto;
+            try {
+                texto = pasos(calculo);
+            } catch (CalculadoraException | RuntimeException e) {
+                texto = "No se pudieron generar los pasos: " + e.getMessage();
+            }
+            calculo.areaPasos.setText(texto.trim());
+        }
+        calculo.areaPasos.setVisible(true);
+        calculo.btnPasos.setText(TEXTO_OCULTAR_PASOS);
+        calculo.bloque.revalidate();
+        SwingUtilities.invokeLater(() -> irABloque(calculo.bloque));
+    }
+
+    /**
+     * Menú para elegir de qué resultado ver los pasos (el más reciente arriba).
+     * Si hay una función escrita, también ofrece calcularla y ver sus pasos.
+     */
+    private void abrirMenuPasos() {
+        JPopupMenu menu = new JPopupMenu();
+
+        if (!txtFuncion.getText().trim().isEmpty()) {
+            JMenuItem actual = itemMenu("▶ calcular  ❯ " + txtFuncion.getText().trim()
+                    + "  y ver sus pasos", Estilo.ACENTO);
+            actual.addActionListener(e -> {
+                Calculo calculo = calcular();
+                if (calculo != null) {
+                    mostrarPasos(calculo);
+                }
+            });
+            menu.add(actual);
+            if (!resueltos.isEmpty()) {
+                menu.addSeparator();
+            }
+        }
+
+        if (resueltos.isEmpty() && menu.getComponentCount() == 0) {
+            JMenuItem vacio = itemMenu("Aún no hay resultados: escribe una función y pulsa Enter",
+                    Estilo.TEXTO_SUAVE);
+            vacio.setEnabled(false);
+            menu.add(vacio);
+        }
+
+        for (int i = resueltos.size() - 1; i >= 0; i--) {
+            Calculo calculo = resueltos.get(i);
+            JMenuItem item = itemMenu(calculo.hora + "   " + calculo.operacion.nombre
+                    + "   ❯ " + calculo.funcion, Estilo.TEXTO);
+            item.addActionListener(e -> mostrarPasos(calculo));
+            menu.add(item);
+        }
+
+        // El botón está abajo de la ventana, así que el menú se abre hacia arriba.
+        menu.show(btnPasos, 0, -menu.getPreferredSize().height - 4);
+    }
+
+    private static JMenuItem itemMenu(String texto, Color color) {
+        JMenuItem item = new JMenuItem(texto);
+        item.setFont(Estilo.fuente(Font.PLAIN, 13));
+        item.setForeground(color);
+        return item;
     }
 
     /** Como "clear" en una terminal: borra los bloques y deja todo como al inicio. */
     private void limpiar() {
+        resueltos.clear();
         panelBloques.vaciar();
         agregarBloqueBienvenida();
         txtFuncion.setText("");

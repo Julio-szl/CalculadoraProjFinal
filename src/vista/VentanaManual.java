@@ -58,7 +58,7 @@ public class VentanaManual extends JDialog {
             + "<table width='100%' cellspacing='0' cellpadding='7'>"
             + filaTitulo("Tecla", "Acción")
             + fila("<code>Enter</code>", "Calcular")
-            + fila("<code>Ctrl + P</code>", "Ver los pasos del procedimiento")
+            + fila("<code>Ctrl + P</code>", "Elegir de qué resultado ver los pasos")
             + fila("<code>Ctrl + L</code>", "Limpiar todos los bloques y empezar de nuevo")
             + fila("<code>F1</code>", "Abrir este manual")
             + "</table>";
@@ -115,10 +115,31 @@ public class VentanaManual extends JDialog {
             + nota("Si <b>a</b> es mayor que <b>b</b>, el resultado sale con signo negativo. "
             + "Es correcto, no es un error.")
 
+            + "<h3>Gráfica</h3>"
+            + "<p>Cada resultado incluye una gráfica de <code>-5</code> a <code>5</code>:</p>"
+            + "<table width='100%' cellspacing='0' cellpadding='7'>"
+            + filaTitulo("Operación", "Qué se dibuja")
+            + fila("Derivada", "<span style='color:#5AC8FA'><b>f(x)</b></span> y "
+                    + "<span class='ok'><b>f'(x)</b></span>")
+            + fila("Integral indefinida", "<span style='color:#5AC8FA'><b>f(x)</b></span> y "
+                    + "<span style='color:#D2A8FF'><b>F(x)</b></span>, tomando C = 0")
+            + fila("Integral definida", "<span style='color:#5AC8FA'><b>f(x)</b></span> con el "
+                    + "<b>área entre a y b</b> sombreada; el eje x se ajusta a los límites")
+            + "</table>"
+            + "<p>Pasa el mouse sobre la gráfica para ver el valor de cada curva en ese punto. "
+            + "Donde la función no existe (por ejemplo <code>x^-1</code> en 0) la curva se corta.</p>"
+
             + "<h3>Pasos del procedimiento</h3>"
-            + "<p>El botón <b>Pasos</b> (o <code>Ctrl + P</code>) agrega un bloque con el procedimiento "
-            + "completo: la regla que se aplica, la cuenta de cada término y cómo se llega al resultado. "
-            + "Por ejemplo, para la derivada de <code>3x^2</code>:</p>"
+            + "<p>Puedes ver el procedimiento completo de <b>cualquier</b> resultado: la regla que se "
+            + "aplica, la cuenta de cada término y cómo se llega al resultado. Hay dos formas:</p>"
+            + "<table width='100%' cellspacing='0' cellpadding='6'>"
+            + paso("1", "Pulsa <code>▸ ver pasos</code> dentro del bloque que te interesa. "
+                    + "Los pasos se despliegan ahí mismo; <code>▾ ocultar pasos</code> los recoge.")
+            + paso("2", "Pulsa el botón <b>Pasos ▴</b> (o <code>Ctrl + P</code>) y elige el resultado "
+                    + "en la lista, el más reciente arriba. Si tienes una función escrita que aún no "
+                    + "calculaste, la primera opción la calcula y muestra sus pasos.")
+            + "</table>"
+            + "<p>Por ejemplo, para la derivada de <code>3x^2</code>:</p>"
             + "<table width='100%' cellpadding='10'><tr><td bgcolor='" + C_SUPERFICIE + "'><code>"
             + "d/dx (3x^2) = 2·3x^(2-1) = 6x</code></td></tr></table>";
 

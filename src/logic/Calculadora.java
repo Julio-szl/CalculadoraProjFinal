@@ -84,10 +84,51 @@ public class Calculadora {
                 parsearLimite(a, "inferior"), parsearLimite(b, "superior"), resultado);
     }
 
+    // ---------------- Datos para la gráfica ----------------
+    // Devuelven el valor de la función en cada punto. Donde la función no existe
+    // (por ejemplo x^-1 en x = 0) el valor es NaN y la gráfica deja un hueco.
+
+    /** Valores de f(x) en cada punto. */
+    public double[] evaluar(String funcion, char variable, double[] puntos) throws CalculadoraException {
+        return evaluarEn(parser.parsear(funcion, variable), puntos);
+    }
+
+    /** Valores de la derivada f'(x) en cada punto. */
+    public double[] evaluarDerivada(String funcion, char variable, double[] puntos)
+            throws CalculadoraException {
+        return evaluarEn(parser.parsear(funcion, variable).derivar(), puntos);
+    }
+
+    /** Valores de la primitiva F(x) en cada punto, tomando la constante C = 0. */
+    public double[] evaluarPrimitiva(String funcion, char variable, double[] puntos)
+            throws CalculadoraException {
+        Polinomio polinomio = parser.parsear(funcion, variable);
+        try {
+            return evaluarEn(polinomio.integrar(), puntos);
+        } catch (ArithmeticException e) {
+            throw new OperacionNoSoportadaException(e.getMessage());
+        }
+    }
+
     // ---------------- Auxiliares ----------------
 
-    /** Convierte el texto de un límite en número o lanza LimiteInvalidoException. */
-    private double parsearLimite(String texto, String nombre) throws LimiteInvalidoException {
+    private double[] evaluarEn(Polinomio polinomio, double[] puntos) {
+        double[] valores = new double[puntos.length];
+        for (int i = 0; i < puntos.length; i++) {
+            try {
+                valores[i] = polinomio.evaluar(puntos[i]);
+            } catch (ArithmeticException e) {
+                valores[i] = Double.NaN;
+            }
+        }
+        return valores;
+    }
+
+    /**
+     * Convierte el texto de un límite en número o lanza LimiteInvalidoException.
+     * Es público para que la vista pueda ubicar los límites en la gráfica.
+     */
+    public double parsearLimite(String texto, String nombre) throws LimiteInvalidoException {
         if (texto == null || texto.trim().isEmpty()) {
             throw new LimiteInvalidoException("El límite " + nombre + " está vacío.");
         }

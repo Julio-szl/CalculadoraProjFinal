@@ -37,6 +37,7 @@ final class Estilo {
     static final Color TEXTO_SUAVE = new Color(0x8A91A0);
     static final Color ACENTO = new Color(0x5AC8FA);
     static final Color EXITO = new Color(0x7EE787);
+    static final Color MORADO = new Color(0xD2A8FF);
     static final Color ERROR = new Color(0xFF7B72);
     static final Color BORDE_ERROR = new Color(0x5C2B2B);
 
