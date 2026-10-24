@@ -53,6 +53,8 @@ public class VentanaPrincipal extends JFrame {
 
     private static final String TEXTO_VER_PASOS = "▸ ver pasos";
     private static final String TEXTO_OCULTAR_PASOS = "▾ ocultar pasos";
+    private static final String TEXTO_VER_GRAFICA = "▸ ver gráfica";
+    private static final String TEXTO_OCULTAR_GRAFICA = "▾ ocultar gráfica";
 
     private enum Operacion {
         DERIVADA("derivada"),
@@ -82,6 +84,8 @@ public class VentanaPrincipal extends JFrame {
         Estilo.Tarjeta bloque;
         JButton btnPasos;
         JTextArea areaPasos;
+        JButton btnGrafica;
+        PanelGrafica grafica;
 
         Calculo(Operacion operacion, String funcion, char variable, String limiteA, String limiteB) {
             this.operacion = operacion;
@@ -118,12 +122,20 @@ public class VentanaPrincipal extends JFrame {
         setTitle("Calculadora de Derivadas e Integrales");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
+        JButton btnBorrar = Estilo.botonSecundario("Borrar");
+        btnBorrar.setToolTipText("Borrar todos los resultados y empezar de nuevo (Ctrl+L)");
+        btnBorrar.addActionListener(e -> limpiar());
         JButton btnManual = Estilo.botonSecundario("? Manual  F1");
         btnManual.addActionListener(e -> abrirManual());
 
+        // Borrar y Manual van juntos arriba a la derecha.
+        JPanel botonesSuperiores = filaTransparente(FlowLayout.RIGHT, 8);
+        botonesSuperiores.add(btnBorrar);
+        botonesSuperiores.add(btnManual);
+
         JPanel raiz = new JPanel(new BorderLayout());
         raiz.setBackground(Estilo.FONDO);
-        raiz.add(Estilo.barraSuperior("calculadora", "derivadas e integrales de polinomios", btnManual),
+        raiz.add(Estilo.barraSuperior("calculadora", "derivadas e integrales de polinomios", botonesSuperiores),
                 BorderLayout.NORTH);
         raiz.add(crearAreaBloques(), BorderLayout.CENTER);
         raiz.add(crearBarraEntrada(), BorderLayout.SOUTH);
@@ -204,18 +216,15 @@ public class VentanaPrincipal extends JFrame {
 
         JButton btnCalcular = Estilo.botonPrimario("Calcular ⏎");
         btnPasos = Estilo.botonSecundario("Pasos ▴");
-        JButton btnLimpiar = Estilo.botonSecundario("Limpiar");
         btnCalcular.addActionListener(e -> calcular());
         btnPasos.setToolTipText("Elegir de qué resultado ver el procedimiento");
         btnPasos.addActionListener(e -> abrirMenuPasos());
-        btnLimpiar.addActionListener(e -> limpiar());
         // Presionar Enter en cualquier campo equivale a pulsar "Calcular".
         getRootPane().setDefaultButton(btnCalcular);
 
         JPanel botones = filaTransparente(FlowLayout.RIGHT, 8);
         botones.add(btnCalcular);
         botones.add(btnPasos);
-        botones.add(btnLimpiar);
 
         JPanel filaComando = new JPanel(new BorderLayout(10, 0));
         filaComando.setOpaque(false);
@@ -225,8 +234,8 @@ public class VentanaPrincipal extends JFrame {
 
         // Fila 3: atajos de teclado
         JLabel atajos = Estilo.texto(
-                "enter calcular   ·   ctrl+p elegir pasos   ·   ctrl+l limpiar   ·   f1 manual",
-                new Color(0x5C6370), Font.PLAIN, 12);
+                "enter calcular   ·   ctrl+p elegir pasos   ·   ctrl+l borrar   ·   f1 manual",
+                Color.WHITE, Font.PLAIN, 12);
 
         JPanel barra = new JPanel();
         barra.setLayout(new BoxLayout(barra, BoxLayout.Y_AXIS));
@@ -338,8 +347,8 @@ public class VentanaPrincipal extends JFrame {
             calculo.btnPasos = Estilo.chip(TEXTO_VER_PASOS);
             calculo.btnPasos.setToolTipText("Mostrar cómo se llegó a este resultado");
             calculo.btnPasos.addActionListener(e -> alternarPasos(calculo));
-            JPanel acciones = filaTransparente(FlowLayout.LEFT, 0);
-            acciones.setBorder(BorderFactory.createEmptyBorder(6, 20, 2, 0));
+            JPanel acciones = filaTransparente(FlowLayout.LEFT, 8);
+            acciones.setBorder(BorderFactory.createEmptyBorder(6, 12, 2, 0));
             acciones.add(calculo.btnPasos);
             agregarEnColumna(cuerpo, acciones);
 
@@ -352,10 +361,17 @@ public class VentanaPrincipal extends JFrame {
             calculo.areaPasos.setVisible(false);
             agregarEnColumna(cuerpo, calculo.areaPasos);
 
-            PanelGrafica grafica = graficaOpcional(calculo);
-            if (grafica != null) {
-                grafica.setBorder(BorderFactory.createEmptyBorder(8, 0, 0, 0));
-                agregarEnColumna(cuerpo, grafica);
+            // La gráfica empieza recogida; el botón "ver gráfica" la despliega.
+            calculo.grafica = graficaOpcional(calculo);
+            if (calculo.grafica != null) {
+                calculo.grafica.setBorder(BorderFactory.createEmptyBorder(8, 0, 0, 0));
+                calculo.grafica.setVisible(false);
+                agregarEnColumna(cuerpo, calculo.grafica);
+
+                calculo.btnGrafica = Estilo.chip(TEXTO_VER_GRAFICA);
+                calculo.btnGrafica.setToolTipText("Mostrar la gráfica de este resultado");
+                calculo.btnGrafica.addActionListener(e -> alternarGrafica(calculo));
+                acciones.add(calculo.btnGrafica);
             }
         }
 
@@ -511,6 +527,18 @@ public class VentanaPrincipal extends JFrame {
         }
         calculo.bloque.revalidate();
         calculo.bloque.repaint();
+    }
+
+    /** Muestra u oculta la gráfica dentro del bloque de ese cálculo. */
+    private void alternarGrafica(Calculo calculo) {
+        boolean mostrar = !calculo.grafica.isVisible();
+        calculo.grafica.setVisible(mostrar);
+        calculo.btnGrafica.setText(mostrar ? TEXTO_OCULTAR_GRAFICA : TEXTO_VER_GRAFICA);
+        calculo.bloque.revalidate();
+        calculo.bloque.repaint();
+        if (mostrar) {
+            SwingUtilities.invokeLater(() -> irABloque(calculo.bloque));
+        }
     }
 
     private void mostrarPasos(Calculo calculo) {

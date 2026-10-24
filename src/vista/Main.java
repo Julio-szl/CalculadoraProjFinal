@@ -1,5 +1,6 @@
 package vista;
 
+import java.awt.Color;
 import java.awt.Insets;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
@@ -26,6 +27,10 @@ public class Main {
             UIManager.put("TabbedPane.selectedForeground", Estilo.ACENTO);
             UIManager.put("TabbedPane.underlineColor", Estilo.ACENTO);
             UIManager.put("ToolTip.background", Estilo.SUPERFICIE_ALTA);
+            // La "x" para borrar el texto de los campos, en blanco.
+            UIManager.put("SearchField.clearIconColor", Color.WHITE);
+            UIManager.put("SearchField.clearIconHoverColor", Estilo.ACENTO);
+            UIManager.put("SearchField.clearIconPressedColor", Estilo.TEXTO_SUAVE);
         } catch (Exception sinFlatLaf) {
             try {
                 UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());

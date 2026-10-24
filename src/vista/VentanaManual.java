@@ -59,7 +59,8 @@ public class VentanaManual extends JDialog {
             + filaTitulo("Tecla", "Acción")
             + fila("<code>Enter</code>", "Calcular")
             + fila("<code>Ctrl + P</code>", "Elegir de qué resultado ver los pasos")
-            + fila("<code>Ctrl + L</code>", "Limpiar todos los bloques y empezar de nuevo")
+            + fila("<code>Ctrl + L</code>", "Borrar todos los bloques y empezar de nuevo "
+                    + "(igual que el botón <b>Borrar</b>)")
             + fila("<code>F1</code>", "Abrir este manual")
             + "</table>";
 
@@ -116,7 +117,9 @@ public class VentanaManual extends JDialog {
             + "Es correcto, no es un error.")
 
             + "<h3>Gráfica</h3>"
-            + "<p>Cada resultado incluye una gráfica de <code>-5</code> a <code>5</code>:</p>"
+            + "<p>Cada resultado tiene el botón <code>▸ ver gráfica</code>, que despliega su gráfica "
+            + "dentro del bloque (<code>▾ ocultar gráfica</code> la recoge). Se dibuja de "
+            + "<code>-5</code> a <code>5</code>:</p>"
             + "<table width='100%' cellspacing='0' cellpadding='7'>"
             + filaTitulo("Operación", "Qué se dibuja")
             + fila("Derivada", "<span style='color:#5AC8FA'><b>f(x)</b></span> y "
