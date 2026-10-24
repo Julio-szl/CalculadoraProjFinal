@@ -434,6 +434,7 @@ bin/
 # Java
 *.class
 build/
+lib/
 nbproject/private/
 
 # Configuración local con credenciales (no subir nunca)
