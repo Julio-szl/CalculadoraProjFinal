@@ -2,6 +2,7 @@ package logic;
 
 import exceptions.CalculadoraException;
 import exceptions.LimiteInvalidoException;
+import exceptions.OperacionNoSoportadaException;
 import java.util.Locale;
 import modelo.Polinomio;
 
@@ -28,8 +29,13 @@ public class Calculadora {
     /** Ejemplo de salida: "F(x) = x^2 + C" */
     public String integrarIndefinida(String funcion, char variable) throws CalculadoraException {
         Polinomio polinomio = parser.parsear(funcion, variable);
-        Polinomio integral = polinomio.integrar();   // puede lanzar OperacionNoSoportadaException
-        return "F(" + variable + ") = " + textoOCero(integral) + " + C";
+        try {
+            Polinomio integral = polinomio.integrar();
+            return "F(" + variable + ") = " + textoOCero(integral) + " + C";
+        } catch (ArithmeticException e) {
+            // El modelo lanza ArithmeticException al integrar x^-1.
+            throw new OperacionNoSoportadaException(e.getMessage());
+        }
     }
 
     /**
@@ -43,8 +49,13 @@ public class Calculadora {
         double limiteSuperior = parsearLimite(b, "superior");
 
         Polinomio polinomio = parser.parsear(funcion, variable);
-        double resultado = polinomio.integralDefinida(limiteInferior, limiteSuperior);
-        return "Resultado = " + formatear(resultado);
+        try {
+            double resultado = polinomio.integralDefinida(limiteInferior, limiteSuperior);
+            return "Resultado = " + formatear(resultado);
+        } catch (ArithmeticException e) {
+            // x^-1, o una función que no existe en algún punto del intervalo.
+            throw new OperacionNoSoportadaException(e.getMessage());
+        }
     }
 
     // ---------------- Auxiliares ----------------
@@ -72,11 +83,11 @@ public class Calculadora {
         return (texto == null || texto.trim().isEmpty()) ? "0" : texto;
     }
 
-    /** 4 -> "4"   y   0.3333333 -> "0.3333". Usa punto decimal siempre. */
+    /** 4 -> "4",   0.5 -> "0.5"   y   0.3333333 -> "0.3333". Usa punto decimal siempre. */
     private String formatear(double valor) {
-        if (valor == Math.rint(valor)) {
-            return String.valueOf((long) valor);
-        }
-        return String.format(Locale.US, "%.4f", valor);
+        String texto = String.format(Locale.US, "%.4f", valor);
+        // Quita los ceros sobrantes y, si queda al final, también el punto.
+        texto = texto.replaceAll("0+$", "").replaceAll("\\.$", "");
+        return texto.equals("-0") ? "0" : texto;
     }
 }
