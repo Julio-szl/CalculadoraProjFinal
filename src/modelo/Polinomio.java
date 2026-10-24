@@ -72,6 +72,30 @@ public class Polinomio extends Funcion {
         return resultado;
     }
  
+    /**
+     * Con exponentes negativos la función no existe en 0: si 0 está dentro
+     * del intervalo, la integral no se puede calcular con la primitiva.
+     */
+    @Override
+    public double integralDefinida(double a, double b) {
+        if (tieneExponenteNegativo() && Math.min(a, b) <= 0 && Math.max(a, b) >= 0) {
+            throw new ArithmeticException(
+                    "La función no está definida en " + variable + " = 0, que está dentro del intervalo ["
+                            + Termino.formatear(a) + ", " + Termino.formatear(b)
+                            + "]; la integral no existe.");
+        }
+        return super.integralDefinida(a, b);
+    }
+
+    private boolean tieneExponenteNegativo() {
+        for (Termino t : terminos.values()) {
+            if (t.getExponente() < 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     @Override
     public double evaluar(double valor) {
         double suma = 0;

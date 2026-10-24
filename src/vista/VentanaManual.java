@@ -48,6 +48,8 @@ public class VentanaManual extends JDialog {
             + "y <b>b</b> (superior). Los límites se habilitan solo para esta operación.</li>"
             + "<li>Presiona <b>Calcular</b> o la tecla <b>Enter</b>.</li>"
             + "</ol>"
+            + "<p>El botón <b>Ver pasos</b> muestra el procedimiento completo: la regla "
+            + "que se aplica, la operación en cada término y cómo se llega al resultado.</p>"
             + "<p>El botón <b>Limpiar</b> borra todos los campos.</p>"
 
             + "<h3>4. Cómo leer el resultado</h3>"
@@ -66,8 +68,9 @@ public class VentanaManual extends JDialog {
             + "<li><b>El límite está vacío / no es un número válido:</b> revisa los campos a y b.</li>"
             + "<li><b>Integral de x^-1:</b> su resultado es ln|x|, que no es un polinomio, "
             + "por eso no está soportada.</li>"
-            + "<li><b>No se puede evaluar:</b> uno de los límites es un punto donde la "
-            + "función no existe (por ejemplo, x^-2 con a = 0, porque no se puede dividir entre cero).</li>"
+            + "<li><b>La función no está definida en x = 0:</b> la función tiene exponentes "
+            + "negativos y el intervalo [a, b] incluye el 0, donde se dividiría entre cero "
+            + "(por ejemplo, x^-2 entre -1 y 1). Usa un intervalo que no incluya el 0.</li>"
             + "</ul>"
             + "</body></html>";
 

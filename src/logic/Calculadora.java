@@ -2,6 +2,7 @@ package logic;
 
 import exceptions.CalculadoraException;
 import exceptions.LimiteInvalidoException;
+import exceptions.OperacionNoSoportadaException;
 import java.util.Locale;
 import modelo.Polinomio;
 
@@ -13,9 +14,11 @@ import modelo.Polinomio;
 public class Calculadora {
 
     private final ParserPolinomio parser;
+    private final GeneradorPasos pasos;
 
     public Calculadora() {
         this.parser = new ParserPolinomio();
+        this.pasos = new GeneradorPasos();
     }
 
     /** Ejemplo de salida: "f'(x) = 6x + 5" */
@@ -28,8 +31,13 @@ public class Calculadora {
     /** Ejemplo de salida: "F(x) = x^2 + C" */
     public String integrarIndefinida(String funcion, char variable) throws CalculadoraException {
         Polinomio polinomio = parser.parsear(funcion, variable);
-        Polinomio integral = polinomio.integrar();   // puede lanzar OperacionNoSoportadaException
-        return "F(" + variable + ") = " + textoOCero(integral) + " + C";
+        try {
+            Polinomio integral = polinomio.integrar();
+            return "F(" + variable + ") = " + textoOCero(integral) + " + C";
+        } catch (ArithmeticException e) {
+            // El modelo lanza ArithmeticException al integrar x^-1.
+            throw new OperacionNoSoportadaException(e.getMessage());
+        }
     }
 
     /**
@@ -43,8 +51,37 @@ public class Calculadora {
         double limiteSuperior = parsearLimite(b, "superior");
 
         Polinomio polinomio = parser.parsear(funcion, variable);
-        double resultado = polinomio.integralDefinida(limiteInferior, limiteSuperior);
-        return "Resultado = " + formatear(resultado);
+        try {
+            double resultado = polinomio.integralDefinida(limiteInferior, limiteSuperior);
+            return "Resultado = " + formatear(resultado);
+        } catch (ArithmeticException e) {
+            // x^-1, o una función que no existe en algún punto del intervalo.
+            throw new OperacionNoSoportadaException(e.getMessage());
+        }
+    }
+
+    // ---------------- Pasos del procedimiento ----------------
+    // Primero se calcula el resultado normal: si hay un error, se lanza la misma
+    // excepción que en la operación sin pasos y no se arma ningún texto.
+
+    /** Texto de varias líneas que explica cómo se obtuvo la derivada. */
+    public String pasosDerivar(String funcion, char variable) throws CalculadoraException {
+        String resultado = derivar(funcion, variable);
+        return pasos.derivar(parser.parsear(funcion, variable), resultado);
+    }
+
+    /** Texto de varias líneas que explica cómo se obtuvo la integral indefinida. */
+    public String pasosIntegrarIndefinida(String funcion, char variable) throws CalculadoraException {
+        String resultado = integrarIndefinida(funcion, variable);
+        return pasos.integrarIndefinida(parser.parsear(funcion, variable), resultado);
+    }
+
+    /** Texto de varias líneas que explica cómo se obtuvo la integral definida. */
+    public String pasosIntegrarDefinida(String funcion, char variable, String a, String b)
+            throws CalculadoraException {
+        String resultado = integrarDefinida(funcion, variable, a, b);
+        return pasos.integrarDefinida(parser.parsear(funcion, variable),
+                parsearLimite(a, "inferior"), parsearLimite(b, "superior"), resultado);
     }
 
     // ---------------- Auxiliares ----------------
@@ -72,11 +109,11 @@ public class Calculadora {
         return (texto == null || texto.trim().isEmpty()) ? "0" : texto;
     }
 
-    /** 4 -> "4"   y   0.3333333 -> "0.3333". Usa punto decimal siempre. */
+    /** 4 -> "4",   0.5 -> "0.5"   y   0.3333333 -> "0.3333". Usa punto decimal siempre. */
     private String formatear(double valor) {
-        if (valor == Math.rint(valor)) {
-            return String.valueOf((long) valor);
-        }
-        return String.format(Locale.US, "%.4f", valor);
+        String texto = String.format(Locale.US, "%.4f", valor);
+        // Quita los ceros sobrantes y, si queda al final, también el punto.
+        texto = texto.replaceAll("0+$", "").replaceAll("\\.$", "");
+        return texto.equals("-0") ? "0" : texto;
     }
 }
