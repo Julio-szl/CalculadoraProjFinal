@@ -27,11 +27,11 @@ Universidad Mariano Gálvez de Guatemala - Programación II
 ```
 src/
 ├── modelo/        Termino, Polinomio y las interfaces Derivable e Integrable
-├── logica/        ParserPolinomio, Calculadora e Historial
-├── datos/         HistorialDAO (acceso opcional a MySQL)
-├── excepciones/   CalculadoraException y sus 3 excepciones específicas
+├── logic/         ParserPolinomio, Calculadora e Historial
+├── data/          HistorialDAO
+├── exceptions/    CalculadoraException y sus 3 excepciones específicas
 └── vista/         Main, VentanaPrincipal y VentanaManual
-test/pruebas/      PruebasParser (no se incluye en el JAR)
+test/pruebas/      PruebasParser
 docs/              UML, diagramas, documentación formal y script SQL
 ```
 
@@ -63,7 +63,6 @@ No se aceptan paréntesis, productos entre términos, exponentes decimales ni le
 ## Requisitos
 
 - JDK 17 o superior
-- (Opcional) MySQL local, solo si se quiere guardar el historial en base de datos
 
 ## Cómo ejecutarlo
 
@@ -96,5 +95,5 @@ Proyecto realizado por:
 | Integrante | Responsabilidad |
 |---|---|
 | [@Julio-szl](https://github.com/Julio-szl) | Parser, calculadora, excepciones e historial |
-| [@alexvrro](https://github.com/alexvrro) | _completar_ |
-| [@Esdras](https://github.com/esdrassamueltuyyax-netizen) | _completar_ |
+| [@alexvrro](https://github.com/alexvrro) | UI, UX |
+| [@Esdras](https://github.com/esdrassamueltuyyax-netizen) | Models, Logic |
