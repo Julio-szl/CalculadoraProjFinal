@@ -12,10 +12,13 @@ import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
+import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
@@ -160,9 +163,11 @@ public class VentanaPrincipal extends JFrame {
         JPanel panel = new JPanel(new BorderLayout(10, 10));
 
         JButton btnCalcular = new JButton("Calcular");
+        JButton btnPasos = new JButton("Ver pasos");
         JButton btnLimpiar = new JButton("Limpiar");
         JButton btnManual = new JButton("Manual de usuario");
         btnCalcular.addActionListener(e -> calcular());
+        btnPasos.addActionListener(e -> verPasos());
         btnLimpiar.addActionListener(e -> limpiar());
         btnManual.addActionListener(e -> abrirManual());
         // Presionar Enter en cualquier campo equivale a pulsar "Calcular".
@@ -170,6 +175,7 @@ public class VentanaPrincipal extends JFrame {
 
         JPanel panelBotones = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
         panelBotones.add(btnCalcular);
+        panelBotones.add(btnPasos);
         panelBotones.add(btnLimpiar);
         panelBotones.add(btnManual);
         panel.add(panelBotones, BorderLayout.NORTH);
@@ -214,6 +220,45 @@ public class VentanaPrincipal extends JFrame {
             // Red de seguridad: ningún error inesperado debe cerrar la ventana.
             mostrarError("No se pudo realizar la operación: " + e.getMessage());
         }
+    }
+
+    /** Muestra en una ventana aparte cómo se llegó al resultado. */
+    private void verPasos() {
+        String funcion = txtFuncion.getText();
+        char variable = ((String) cmbVariable.getSelectedItem()).charAt(0);
+
+        try {
+            String pasos;
+            if (rbDerivar.isSelected()) {
+                pasos = calculadora.pasosDerivar(funcion, variable);
+            } else if (rbIndefinida.isSelected()) {
+                pasos = calculadora.pasosIntegrarIndefinida(funcion, variable);
+            } else {
+                pasos = calculadora.pasosIntegrarDefinida(
+                        funcion, variable, txtLimiteA.getText(), txtLimiteB.getText());
+            }
+            mostrarPasos(pasos);
+        } catch (CalculadoraException e) {
+            mostrarError(e.getMessage());
+        } catch (RuntimeException e) {
+            mostrarError("No se pudo realizar la operación: " + e.getMessage());
+        }
+    }
+
+    private void mostrarPasos(String pasos) {
+        JTextArea area = new JTextArea(pasos);
+        area.setEditable(false);
+        area.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 14));
+        area.setMargin(new Insets(8, 8, 8, 8));
+
+        JScrollPane scroll = new JScrollPane(area);
+        Dimension tamano = area.getPreferredSize();
+        // Crece con el texto, pero sin pasar de un tamaño razonable de pantalla.
+        scroll.setPreferredSize(new Dimension(
+                Math.min(tamano.width + 30, 750), Math.min(tamano.height + 30, 500)));
+
+        JOptionPane.showMessageDialog(this, scroll, "Pasos del procedimiento",
+                JOptionPane.PLAIN_MESSAGE);
     }
 
     private void limpiar() {

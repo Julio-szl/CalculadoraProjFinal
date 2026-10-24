@@ -14,9 +14,11 @@ import modelo.Polinomio;
 public class Calculadora {
 
     private final ParserPolinomio parser;
+    private final GeneradorPasos pasos;
 
     public Calculadora() {
         this.parser = new ParserPolinomio();
+        this.pasos = new GeneradorPasos();
     }
 
     /** Ejemplo de salida: "f'(x) = 6x + 5" */
@@ -56,6 +58,30 @@ public class Calculadora {
             // x^-1, o una función que no existe en algún punto del intervalo.
             throw new OperacionNoSoportadaException(e.getMessage());
         }
+    }
+
+    // ---------------- Pasos del procedimiento ----------------
+    // Primero se calcula el resultado normal: si hay un error, se lanza la misma
+    // excepción que en la operación sin pasos y no se arma ningún texto.
+
+    /** Texto de varias líneas que explica cómo se obtuvo la derivada. */
+    public String pasosDerivar(String funcion, char variable) throws CalculadoraException {
+        String resultado = derivar(funcion, variable);
+        return pasos.derivar(parser.parsear(funcion, variable), resultado);
+    }
+
+    /** Texto de varias líneas que explica cómo se obtuvo la integral indefinida. */
+    public String pasosIntegrarIndefinida(String funcion, char variable) throws CalculadoraException {
+        String resultado = integrarIndefinida(funcion, variable);
+        return pasos.integrarIndefinida(parser.parsear(funcion, variable), resultado);
+    }
+
+    /** Texto de varias líneas que explica cómo se obtuvo la integral definida. */
+    public String pasosIntegrarDefinida(String funcion, char variable, String a, String b)
+            throws CalculadoraException {
+        String resultado = integrarDefinida(funcion, variable, a, b);
+        return pasos.integrarDefinida(parser.parsear(funcion, variable),
+                parsearLimite(a, "inferior"), parsearLimite(b, "superior"), resultado);
     }
 
     // ---------------- Auxiliares ----------------

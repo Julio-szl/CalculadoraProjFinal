@@ -48,6 +48,8 @@ public class VentanaManual extends JDialog {
             + "y <b>b</b> (superior). Los límites se habilitan solo para esta operación.</li>"
             + "<li>Presiona <b>Calcular</b> o la tecla <b>Enter</b>.</li>"
             + "</ol>"
+            + "<p>El botón <b>Ver pasos</b> muestra el procedimiento completo: la regla "
+            + "que se aplica, la operación en cada término y cómo se llega al resultado.</p>"
             + "<p>El botón <b>Limpiar</b> borra todos los campos.</p>"
 
             + "<h3>4. Cómo leer el resultado</h3>"
