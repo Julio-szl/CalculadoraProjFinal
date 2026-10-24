@@ -2,6 +2,7 @@ package logic;
 
 import exceptions.CalculadoraException;
 import exceptions.LimiteInvalidoException;
+import exceptions.OperacionNoSoportadaException;
 import java.util.Locale;
 import model.Polinomio;
 import model.Termino;
@@ -9,15 +10,11 @@ import model.Termino;
 public class Calculadora {
 
     private final ParserPolinomio parser;
-    private final Historial historial;
+    private final GeneradorPasos pasos;
 
     public Calculadora() {
         this.parser = new ParserPolinomio();
-        this.historial = new Historial();
-    }
-
-    public Historial getHistorial() {
-        return historial;
+        this.pasos = new GeneradorPasos();
     }
 
     // ================= Operaciones principales =================
@@ -53,81 +50,37 @@ public class Calculadora {
         double limiteSuperior = parsearLimite(b, "superior");
 
         Polinomio polinomio = parser.parsear(funcion, variable);
-        double valor = polinomio.integralDefinida(limiteInferior, limiteSuperior);
-
-        String resultado = "Resultado = " + formatear(valor);
-        historial.agregar("Integral definida [" + a.trim() + ", " + b.trim() + "]",
-                funcion, variable, resultado);
-        return resultado;
+        try {
+            double resultado = polinomio.integralDefinida(limiteInferior, limiteSuperior);
+            return "Resultado = " + formatear(resultado);
+        } catch (ArithmeticException e) {
+            // x^-1, o una función que no existe en algún punto del intervalo.
+            throw new OperacionNoSoportadaException(e.getMessage());
+        }
     }
 
-    // ================= Pasos del procedimiento =================
+    // ---------------- Pasos del procedimiento ----------------
+    // Primero se calcula el resultado normal: si hay un error, se lanza la misma
+    // excepción que en la operación sin pasos y no se arma ningún texto.
 
-    /** Pasos de la derivada, término por término. */
+    /** Texto de varias líneas que explica cómo se obtuvo la derivada. */
     public String pasosDerivar(String funcion, char variable) throws CalculadoraException {
-        Polinomio p = parser.parsear(funcion, variable);
-        StringBuilder sb = new StringBuilder();
-        sb.append("Función: f(").append(variable).append(") = ").append(textoOCero(p)).append("\n");
-        sb.append("Regla de la potencia: d/d").append(variable).append(" (a·")
-                .append(variable).append("^n) = a·n·").append(variable).append("^(n-1)\n\n");
-
-        for (Termino t : p.getTerminos()) {
-            sb.append("d/d").append(variable).append(" (").append(t).append(") = ");
-            if (t.getExponente() == 0) {
-                sb.append("0   (la derivada de una constante es 0)\n");
-            } else {
-                sb.append(formatear(t.getCoeficiente())).append("·").append(t.getExponente())
-                        .append(" ").append(variable).append("^").append(t.getExponente() - 1)
-                        .append(" = ").append(t.derivar()).append("\n");
-            }
-        }
-        sb.append("\nResultado: f'(").append(variable).append(") = ")
-                .append(textoOCero(p.derivar()));
-        return sb.toString();
+        String resultado = derivar(funcion, variable);
+        return pasos.derivar(parser.parsear(funcion, variable), resultado);
     }
 
-    /** Pasos de la integral indefinida. */
-    public String pasosIntegrar(String funcion, char variable) throws CalculadoraException {
-        Polinomio p = parser.parsear(funcion, variable);
-        StringBuilder sb = new StringBuilder();
-        sb.append("Función: f(").append(variable).append(") = ").append(textoOCero(p)).append("\n");
-        sb.append("Regla de la potencia: ∫ a·").append(variable).append("^n d").append(variable)
-                .append(" = a/(n+1)·").append(variable).append("^(n+1)\n\n");
-
-        for (Termino t : p.getTerminos()) {
-            sb.append("∫ (").append(t).append(") d").append(variable).append(" = ")
-                    .append(formatear(t.getCoeficiente())).append("/").append(t.getExponente() + 1)
-                    .append(" ").append(variable).append("^").append(t.getExponente() + 1)
-                    .append(" = ").append(t.integrar()).append("\n"); // lanza si el exponente es -1
-        }
-        sb.append("\nResultado: F(").append(variable).append(") = ")
-                .append(textoOCero(p.integrar())).append(" + C");
-        return sb.toString();
+    /** Texto de varias líneas que explica cómo se obtuvo la integral indefinida. */
+    public String pasosIntegrarIndefinida(String funcion, char variable) throws CalculadoraException {
+        String resultado = integrarIndefinida(funcion, variable);
+        return pasos.integrarIndefinida(parser.parsear(funcion, variable), resultado);
     }
 
-    /**
-     * Pasos de la integral definida (regla de Barrow).
-     */
+    /** Texto de varias líneas que explica cómo se obtuvo la integral definida. */
     public String pasosIntegrarDefinida(String funcion, char variable, String a, String b)
             throws CalculadoraException {
-        double inferior = parsearLimite(a, "inferior");
-        double superior = parsearLimite(b, "superior");
-
-        Polinomio F = parser.parsear(funcion, variable).integrar();
-        double fSuperior = F.evaluar(superior);
-        double fInferior = F.evaluar(inferior);
-
-        return pasosIntegrar(funcion, variable)
-                + "\n\nRegla de Barrow: F(b) - F(a)"
-                + "\nF(" + formatear(superior) + ") = " + formatear(fSuperior)
-                + "\nF(" + formatear(inferior) + ") = " + formatear(fInferior)
-                + "\nResultado = " + formatear(fSuperior - fInferior);
-    }
-
-    // ================= Datos para la gráfica =================
-    public double[] muestrear(String funcion, char variable, double desde, double hasta, int puntos)
-            throws CalculadoraException {
-        return calcularPuntos(parser.parsear(funcion, variable), desde, hasta, puntos);
+        String resultado = integrarDefinida(funcion, variable, a, b);
+        return pasos.integrarDefinida(parser.parsear(funcion, variable),
+                parsearLimite(a, "inferior"), parsearLimite(b, "superior"), resultado);
     }
 
     /** Igual que muestrear, pero con la derivada de la función. */
@@ -178,11 +131,11 @@ public class Calculadora {
         return (texto == null || texto.trim().isEmpty()) ? "0" : texto;
     }
 
-    /** 4 -> "4" y 0.3333333 -> "0.3333". Usa punto decimal siempre. */
+    /** 4 -> "4",   0.5 -> "0.5"   y   0.3333333 -> "0.3333". Usa punto decimal siempre. */
     private String formatear(double valor) {
-        if (valor == Math.rint(valor)) {
-            return String.valueOf((long) valor);
-        }
-        return String.format(Locale.US, "%.4f", valor);
+        String texto = String.format(Locale.US, "%.4f", valor);
+        // Quita los ceros sobrantes y, si queda al final, también el punto.
+        texto = texto.replaceAll("0+$", "").replaceAll("\\.$", "");
+        return texto.equals("-0") ? "0" : texto;
     }
 }
