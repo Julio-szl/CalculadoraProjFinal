@@ -86,6 +86,8 @@ public class VentanaPrincipal extends JFrame {
         JTextArea areaPasos;
         JButton btnGrafica;
         PanelGrafica grafica;
+        /** true si la gráfica se abrió sola (por ser el último resultado) y no a mano. */
+        boolean graficaAutomatica;
 
         Calculo(Operacion operacion, String funcion, char variable, String limiteA, String limiteB) {
             this.operacion = operacion;
@@ -99,6 +101,8 @@ public class VentanaPrincipal extends JFrame {
     private final Calculadora calculadora;
     /** Cálculos resueltos con éxito, en el orden en que se hicieron. */
     private final List<Calculo> resueltos = new ArrayList<>();
+    /** Último cálculo cuya gráfica se abrió sola; se recoge cuando llega uno nuevo. */
+    private Calculo ultimoConGraficaAutomatica;
 
     private PanelBloques panelBloques;
     private JTextField txtFuncion;
@@ -122,7 +126,7 @@ public class VentanaPrincipal extends JFrame {
         setTitle("Calculadora de Derivadas e Integrales");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-        JButton btnBorrar = Estilo.botonSecundario("Borrar");
+        JButton btnBorrar = Estilo.botonSecundario("Borrar historial");
         btnBorrar.setToolTipText("Borrar todos los resultados y empezar de nuevo (Ctrl+L)");
         btnBorrar.addActionListener(e -> limpiar());
         JButton btnManual = Estilo.botonSecundario("? Manual  F1");
@@ -361,17 +365,27 @@ public class VentanaPrincipal extends JFrame {
             calculo.areaPasos.setVisible(false);
             agregarEnColumna(cuerpo, calculo.areaPasos);
 
-            // La gráfica empieza recogida; el botón "ver gráfica" la despliega.
+            // Solo el último resultado muestra su gráfica de forma automática; en los
+            // demás, el botón "ver gráfica" la despliega.
             calculo.grafica = graficaOpcional(calculo);
             if (calculo.grafica != null) {
                 calculo.grafica.setBorder(BorderFactory.createEmptyBorder(8, 0, 0, 0));
-                calculo.grafica.setVisible(false);
                 agregarEnColumna(cuerpo, calculo.grafica);
 
                 calculo.btnGrafica = Estilo.chip(TEXTO_VER_GRAFICA);
-                calculo.btnGrafica.setToolTipText("Mostrar la gráfica de este resultado");
-                calculo.btnGrafica.addActionListener(e -> alternarGrafica(calculo));
+                calculo.btnGrafica.setToolTipText("Mostrar u ocultar la gráfica de este resultado");
+                calculo.btnGrafica.addActionListener(e -> {
+                    calculo.graficaAutomatica = false;
+                    mostrarGrafica(calculo, !calculo.grafica.isVisible());
+                });
                 acciones.add(calculo.btnGrafica);
+
+                if (ultimoConGraficaAutomatica != null && ultimoConGraficaAutomatica.graficaAutomatica) {
+                    mostrarGrafica(ultimoConGraficaAutomatica, false);
+                }
+                calculo.graficaAutomatica = true;
+                ultimoConGraficaAutomatica = calculo;
+                mostrarGrafica(calculo, true);
             }
         }
 
@@ -530,14 +544,15 @@ public class VentanaPrincipal extends JFrame {
     }
 
     /** Muestra u oculta la gráfica dentro del bloque de ese cálculo. */
-    private void alternarGrafica(Calculo calculo) {
-        boolean mostrar = !calculo.grafica.isVisible();
+    private void mostrarGrafica(Calculo calculo, boolean mostrar) {
         calculo.grafica.setVisible(mostrar);
         calculo.btnGrafica.setText(mostrar ? TEXTO_OCULTAR_GRAFICA : TEXTO_VER_GRAFICA);
-        calculo.bloque.revalidate();
-        calculo.bloque.repaint();
-        if (mostrar) {
-            SwingUtilities.invokeLater(() -> irABloque(calculo.bloque));
+        if (calculo.bloque != null) {
+            calculo.bloque.revalidate();
+            calculo.bloque.repaint();
+            if (mostrar) {
+                SwingUtilities.invokeLater(() -> irABloque(calculo.bloque));
+            }
         }
     }
 
@@ -609,6 +624,7 @@ public class VentanaPrincipal extends JFrame {
     /** Como "clear" en una terminal: borra los bloques y deja todo como al inicio. */
     private void limpiar() {
         resueltos.clear();
+        ultimoConGraficaAutomatica = null;
         panelBloques.vaciar();
         agregarBloqueBienvenida();
         txtFuncion.setText("");
