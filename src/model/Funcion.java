@@ -1,4 +1,4 @@
-package modelo;
+package model;
  
 
 public abstract class Funcion implements Evaluable, Derivable, Integrable {
